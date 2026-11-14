@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Air Rifle Scorer — Multi-Target 10m Competition Vision</title>
+  <link rel="stylesheet" href="static/style.css" />
+</head>
+<body>
+  <!-- ── Top Navigation Bar ── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-icon">🎯</span>
+      <div>
+        <div class="brand-name">Air Rifle Scorer</div>
+        <div class="brand-sub">10-Bull &amp; 12-Bull Competition Photo Vision</div>
+      </div>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div class="topbar-actions">
+      <!-- Shots per Target Selector (1 to 5) -->
+      <div class="shots-per-target-control">
+        <span class="control-label">Shots/Bull:</span>
+        <div class="segmented-control" id="shotsPerTargetGroup">
+          <button class="seg-btn active" onclick="setShotsPerTarget(1)">1</button>
+          <button class="seg-btn" onclick="setShotsPerTarget(2)">2</button>
+          <button class="seg-btn" onclick="setShotsPerTarget(3)">3</button>
+          <button class="seg-btn" onclick="setShotsPerTarget(4)">4</button>
+          <button class="seg-btn" onclick="setShotsPerTarget(5)">5</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="captureFromCamera()">
+        📸 Capture Photo
+      </button>
+
+      <label class="btn btn-outline file-upload-btn">
+        📁 Upload Photo
+        <input type="file" id="fileUploadInput" accept="image/*" onchange="handleFileUpload(event)" style="display: none;" />
+      </label>
+
+      <button class="btn btn-outline" onclick="nextCard()">
+        📄 Next Card
+      </button>
+
+      <button class="btn btn-danger-sm" onclick="resetSession()">
+        ↺ Reset Match
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Main Workspace Layout ── -->
+  <main class="layout">
+    <!-- ── LEFT: Sheet View & Inspection ── -->
+    <section class="sheet-panel">
+      <!-- Panel Header Tabs -->
+      <div class="panel-header">
+        <div class="tabs">
+          <button class="tab-btn active" id="tabSheet" onclick="setPanelTab('sheet')">
+            🎯 Scored Target Sheet
+          </button>
+          <button class="tab-btn" id="tabLive" onclick="setPanelTab('live')">
+            📹 Live Viewfinder
+          </button>
+        </div>
+        <div class="sheet-info-pill" id="sheetInfoPill">Card #1 &bull; Ready</div>
+      </div>
+
+      <!-- Main Display Area -->
+      <div class="display-container" id="displayContainer">
+        <!-- Processed Full Sheet Image -->
+        <img
+          id="sheetImg"
+          src="api/sheet_image"
+          alt="Scored Target Sheet"
+          class="sheet-display-img active"
+          onerror="this.style.display='none'"
+        />
+
+        <!-- Live Camera Viewfinder (Backend MJPEG) -->
+        <img
+          id="liveStream"
+          src="video_feed"
+          alt="Live Camera"
+          class="sheet-display-img"
+          onerror="this.style.display='none'"
+        />
+
+        <!-- Live WebCam Video (Direct Browser WebCam for GitHub Pages) -->
+        <video
+          id="liveVideo"
+          class="sheet-display-img"
+          playsinline
+          autoplay
+          muted
+        ></video>
+
+        <!-- Upload Dropzone Overlay -->
+        <div class="dropzone-overlay" id="dropzoneOverlay">
+          <div class="dropzone-content">
+            <span class="dropzone-icon">📥</span>
+            <div>Drop Target Photo Here</div>
+          </div>
+        </div>
+
+        <!-- Processing Loading Spinner -->
+        <div class="processing-spinner" id="processingSpinner" style="display: none;">
+          <div class="spinner"></div>
+          <div class="spinnerText">Analyzing 10m Target Bulls &amp; Shots...</div>
+        </div>
+      </div>
+
+      <!-- Bottom Target Bulls Carousel / Selector -->
+      <div class="bulls-carousel-bar">
+        <div class="carousel-title">Detected Target Bulls (Click to Inspect &amp; Mark Shot):</div>
+        <div class="bulls-chips" id="bullsChips">
+          <div class="chip-empty">No target sheet scanned yet — Click "Capture Photo" or "Upload Photo"</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── RIGHT: Match Scorecard & Detail Inspector ── -->
+    <aside class="scorecard-panel">
+      <!-- Match Totals Hero -->
+      <div class="match-hero">
+        <div class="hero-card primary">
+          <div class="hero-lbl">MATCH DECIMAL SCORE</div>
+          <div class="hero-val" id="decTotal">0.0</div>
+          <div class="hero-sub"><span id="totalShots">0</span> shots scored</div>
+        </div>
+        <div class="hero-card secondary">
+          <div class="hero-lbl">INTEGER SCORE</div>
+          <div class="hero-val" id="intTotal">0</div>
+          <div class="hero-sub">Max: <span id="maxPossible">0</span></div>
+        </div>
+      </div>
+
+      <!-- Match Statistics -->
+      <div class="stat-strip">
+        <div class="stat-item">
+          <span class="stat-lbl">Average</span>
+          <span class="stat-val" id="statAvg">0.0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-lbl">Inner Tens (X)</span>
+          <span class="stat-val" id="statInnerTens">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-lbl">Current Card</span>
+          <span class="stat-val" id="statCard">#1</span>
+        </div>
+      </div>
+
+      <!-- Zoomed Target Inspector with Interactive Radius Reticle -->
+      <div class="target-inspector" id="targetInspector">
+        <div class="inspector-header">
+          <span id="inspectorTitle">Target Bull Inspector</span>
+          <div class="inspector-actions">
+            <button class="btn-clear-target" onclick="clearSelectedBullShots()" title="Clear shots on this bull to re-mark">
+              🗑️ Clear Bull
+            </button>
+            <span class="badge" id="inspectorScoreBadge">—</span>
+          </div>
+        </div>
+
+        <div class="inspector-interactive-wrapper">
+          <div class="inspector-canvas-box" id="inspectorBox">
+            <img id="inspectorImg" src="" alt="Target Crop" />
+            <canvas id="inspectorCanvas"></canvas>
+          </div>
+          <div class="inspector-meta" id="inspectorMeta">
+            <div class="hint-badge">💡 Interactive Marking:</div>
+            Hover over target to see the <strong>exact 4.5mm pellet radius</strong>. Click on the hole to mark or adjust the shot!
+          </div>
+        </div>
+      </div>
+
+      <!-- Shot-by-Shot Log -->
+      <div class="table-card">
+        <div class="table-header">Shot Log by Bull</div>
+        <div class="table-scroll">
+          <table class="shot-table">
+            <thead>
+              <tr>
+                <th>Target</th>
+                <th>Ring</th>
+                <th>Dec</th>
+                <th>Pts</th>
+                <th>Dist</th>
+              </tr>
+            </thead>
+            <tbody id="shotTableBody">
+              <tr class="empty-row" id="emptyRow">
+                <td colspan="5">No shots recorded yet</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="static/app.js"></script>
+</body>
+</html>

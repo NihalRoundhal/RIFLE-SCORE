@@ -75,6 +75,7 @@
           src="/api/sheet_image"
           alt="Scored Target Sheet"
           class="sheet-display-img active"
+          onerror="this.style.display='none'"
         />
 
         <!-- Live Camera Viewfinder -->
@@ -83,7 +84,17 @@
           src="/video_feed"
           alt="Live Camera"
           class="sheet-display-img"
+          onerror="this.style.display='none'"
         />
+
+        <!-- Live WebCam Video (Direct Browser WebCam) -->
+        <video
+          id="liveVideo"
+          class="sheet-display-img"
+          playsinline
+          autoplay
+          muted
+        ></video>
 
         <!-- Upload Dropzone Overlay -->
         <div class="dropzone-overlay" id="dropzoneOverlay">
@@ -160,7 +171,7 @@
           </div>
           <div class="inspector-meta" id="inspectorMeta">
             <div class="hint-badge">💡 Interactive Marking:</div>
-            Hover over the target to see the <strong>exact 4.5mm pellet radius</strong>. Click on the hole to mark or adjust the shot!
+            Hover over target to see the <strong>exact 4.5mm pellet radius</strong>. Click on the hole to mark or adjust the shot!
           </div>
         </div>
       </div>
