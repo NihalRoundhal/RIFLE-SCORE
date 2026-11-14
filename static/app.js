@@ -122,13 +122,19 @@ async function startWebcamStream() {
   if (!$liveVideo) return;
   try {
     _videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
+      video: {
+        facingMode: { ideal: 'environment' }, // prefer rear camera on mobile
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
     });
     $liveVideo.srcObject = _videoStream;
     $liveVideo.classList.add('active');
   } catch (err) {
-    console.error('Camera access error:', err);
-    alert('Please allow camera permissions in your browser to use the live viewfinder.');
+    console.warn('Camera access denied or unavailable:', err);
+    // Smooth fallback: open file/camera picker if webcam cannot be opened
+    const fileInput = document.getElementById('fileUploadInput');
+    if (fileInput) fileInput.click();
   }
 }
 
